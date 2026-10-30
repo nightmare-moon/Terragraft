@@ -1,0 +1,35 @@
+name: terragraft
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: terragraft
+      POSTGRES_USER: lab
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run INSTALL.ps1}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lab -d terragraft"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://lab:${POSTGRES_PASSWORD}@postgres:5432/terragraft
+      TERRAGRAFT_AGENT_TOKEN: ${TERRAGRAFT_AGENT_TOKEN:-}
+      TERRAGRAFT_ADMIN_TOKEN: ${TERRAGRAFT_ADMIN_TOKEN:?Run INSTALL.ps1}
+      TERRAGRAFT_ENCRYPTION_KEY: ${TERRAGRAFT_ENCRYPTION_KEY:?Run INSTALL.ps1}
+      TERRAGRAFT_WRITER_TOKEN: ${TERRAGRAFT_WRITER_TOKEN:-}
+      TERRAGRAFT_VIEWER_TOKEN: ${TERRAGRAFT_VIEWER_TOKEN:-}
+      TERRAGRAFT_OLD_ENCRYPTION_KEYS: ${TERRAGRAFT_OLD_ENCRYPTION_KEYS:-}
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+volumes:
+  pg_data:

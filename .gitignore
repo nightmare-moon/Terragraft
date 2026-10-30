@@ -1,0 +1,54 @@
+# Terragraft secrets and machine-local configuration. Never commit these.
+.env
+.env.*
+!.env.example
+.terragraft.local.json
+*credentials*.json
+*secrets*.json
+*.pem
+*.p12
+*.pfx
+*.key
+
+# Terraform/OpenTofu state, plans and local working data
+.terraform/
+.tofu/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+crash.log
+crash.*.log
+
+# Application data / backups
+backups/
+*.dump
+*.backup
+*.sqlite
+*.sqlite3
+pg_data/
+data/
+*.log
+
+# Python environment / builds
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+*.py[cod]
+.coverage
+dist/
+build/
+
+# Local OS/editor artifacts
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

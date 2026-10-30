@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terragraft | Project Console</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:#f6f8fc;color:#142239}
+*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #dfe7f1;padding:22px max(22px,4vw)}
+header .head{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:center;max-width:1440px;margin:auto}
+h1{font-size:26px;letter-spacing:-.6px;margin:4px 0}h2{font-size:18px;margin:0 0 16px}h3{font-size:15px;margin:0 0 8px}
+p{color:#54667c;line-height:1.5;margin:4px 0;font-size:14px}.tag{font-size:11px;font-weight:800;letter-spacing:1.3px;color:#2260bf;text-transform:uppercase}
+main{max-width:1440px;padding:24px max(22px,4vw) 50px;margin:auto;display:grid;gap:18px}
+.panel{background:#fff;border:1px solid #dce4f0;border-radius:12px;padding:20px;box-shadow:0 4px 14px #203c6010}
+.flex{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.flex .grow{flex:1}.grid{display:grid;grid-template-columns:1fr 1.5fr;gap:18px}
+label{display:grid;gap:5px;font-size:12px;font-weight:700;color:#4a5b73}input,select{border:1px solid #cbd5e1;border-radius:7px;padding:10px;min-width:130px;font:inherit;max-width:100%}
+input[type=password]{width:360px}button{background:#2563eb;border:1px solid #2563eb;border-radius:7px;padding:10px 13px;color:white;font-size:13px;font-weight:700;cursor:pointer}
+button.alt{background:#fff;color:#1d4ed8}button.warn{border-color:#b45309;background:#b45309}button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #9dc4fd;outline-offset:2px}
+.notice{padding:12px 15px;background:#eff6ff;border:1px solid #bfd6ff;border-radius:8px;color:#294b72;font-size:13px;line-height:1.5}
+.warnbox{background:#fffbeb;border-color:#f5d59f;color:#8a5411}
+small,.small{font-size:12px;color:#64748b;line-height:1.5}.mono{font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere;font-size:12px}
+.projects{display:grid;gap:10px}.project{border:1px solid #e2e8f0;border-radius:10px;padding:15px;display:grid;gap:8px}.project h3{margin:0}
+.project .meta{font-size:12px;color:#5b6a80}.status{font-size:11px;border:1px solid #ccd5e3;background:#f1f5f9;padding:3px 7px;border-radius:12px;font-weight:700;white-space:nowrap}
+.status.plan_ready{color:#9a5700;background:#fff7e1;border-color:#f4d791}.status.succeeded{color:#14723b;background:#e9f8ec;border-color:#b0e5c4}.status.needs_reconciliation,.status.failed{color:#b42318;background:#fff0ee;border-color:#ffbbb6}
+.runs{display:grid;gap:10px;max-height:650px;overflow:auto}.run{border:1px solid #e2e8f0;border-radius:9px;padding:12px;display:grid;gap:8px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:270px;overflow:auto;margin:8px 0 0;background:#101b2c;color:#e5eaf5;border-radius:8px;padding:12px;font-size:12px}
+details summary{font-size:12px;font-weight:700;color:#1d4ed8;cursor:pointer}
+a{color:#1d4ed8;text-decoration:none;font-size:13px;font-weight:700}a:hover{text-decoration:underline}
+#notice{min-height:18px;font-size:13px;font-weight:600}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr}}
+</style></head>
+<body><header><div class="head"><div><div class="tag">Terragraft v1.0 / standalone</div><h1>Infrastructure Project Console</h1><p>Register projects, assign independent states, queue plans, and approve saved-plan applies.</p></div><nav><a href="/ui">State graph explorer</a> · <a href="/docs">API docs</a></nav></div></header>
+<main>
+<section class="panel"><div class="flex"><label>Administrator API token<input id="token" type="password" autocomplete="off" placeholder="TERRAGRAFT_ADMIN_TOKEN from .env"></label><button id="connect">Connect / Refresh</button><span class="small">Token stays in this browser tab's memory only.</span></div><div id="notice" role="status" aria-live="polite"></div></section>
+<div class="notice warnbox"><b>Execution safety:</b> The Windows runner only accesses folders under its configured <span class="mono">--root</span>. A project must use the HTTP backend. Existing state is never migrated automatically. Plans and applies retain Terraform's whole-state locking. Terraform provider/provisioner code can execute on the runner—register trusted repositories only.</div>
+<div class="grid">
+ <div class="panel"><h2>Register Terraform project</h2><p>Install the server once. Give each independently managed stack its own workspace. Local paths are on the <b>runner's machine</b>, not inside Docker.</p>
+ <form id="register"><div class="formgrid" style="margin-top:18px">
+ <label>Display name<input name="name" required placeholder="Network Production" maxlength="100"></label>
+ <label>Workspace / state name<input name="workspace" required pattern="[A-Za-z0-9][A-Za-z0-9_-]*" placeholder="network-prod"></label>
+ <label>Runner ID<input name="runner_id" required value="local-win11"></label>
+ <label>Terraform CLI<select name="engine"><option value="terraform">Terraform</option><option value="tofu">OpenTofu</option></select></label>
+ </div><label style="margin:12px 0 14px">Absolute project path on the runner<input name="local_path" required placeholder="D:\TerraformProjects\Network"></label>
+ <button type="submit">Register project</button></form>
+ <div class="notice" style="margin-top:16px">Windows runner (normally started automatically by INSTALL.ps1):<div class="mono" style="margin:8px 0">RUNNER.ps1</div>To connect an existing new Terraform project, run <span class="mono">CONNECT-PROJECT.ps1</span> from the installation directory.</div>
+ </div>
+ <div class="panel"><div class="flex" style="justify-content:space-between"><h2>Managed projects</h2><span id="projectCount" class="small">0 projects</span></div><div id="projects" class="projects"><p>Connect with an administrator token to load projects.</p></div></div>
+</div>
+<section class="panel"><div class="flex" style="justify-content:space-between"><h2>Operations & approvals</h2><span class="small">Plans are reviewed before applying · auto-refresh every 10 seconds</span></div><div id="runs" class="runs"><p>No runs loaded.</p></div></section>
+<div class="small">Local lab only: keep 8080 bound to localhost. For team access, configure TLS, authenticated runner connections, per-user identities and role controls, audit retention, backups, and security review. Plan outputs and local saved-plan files may contain secrets.</div>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+let projects = [];
+function status(message, error=false){$('notice').textContent=message;$('notice').style.color=error?'#b42318':'#176534'}
+function dom(tag,text,cls){const elem=document.createElement(tag);if(text!==undefined)elem.textContent=String(text);if(cls)elem.className=cls;return elem}
+function btn(text, handler,cls=''){const b=dom('button',text,cls);b.type='button';b.addEventListener('click',handler);return b}
+async function api(path,method='GET',payload){
+ const token=$('token').value.trim();if(!token)throw Error('Enter your administrator API token');
+ const res=await fetch(path,{method,headers:{Authorization:`Bearer ${token}`,...(payload?{'Content-Type':'application/json'}:{})},body:payload?JSON.stringify(payload):undefined,cache:'no-store'});
+ const text=await res.text();let data;try{data=text?JSON.parse(text):{}}catch{throw Error(`Unexpected HTTP ${res.status}`)}
+ if(!res.ok)throw Error(typeof data.detail==='string'?data.detail:JSON.stringify(data.detail||data));return data;
+}
+async function refresh(){
+ try{const [a,b]=await Promise.all([api('/api/projects'),api('/api/runs')]);projects=a.projects;
+   renderProjects();renderRuns(b.runs);status(`Connected · ${new Date().toLocaleTimeString()}`);
+ }catch(e){status(e.message,true)}
+}
+function renderProjects(){const root=$('projects');root.replaceChildren();$('projectCount').textContent=`${projects.length} projects`;
+ if(!projects.length){root.append(dom('p','No projects registered yet. Add one using the form.'));return}
+ for(const p of projects){
+  const card=dom('section',undefined,'project');const head=dom('div',undefined,'flex');head.append(dom('h3',p.name));head.append(dom('span',p.enabled?'Enabled':'Disabled','status'));
+  card.append(head,dom('div',`${p.workspace} · ${p.engine} · runner ${p.runner_id}`,'meta'),dom('div',p.local_path,'mono'));
+  const row=dom('div',undefined,'flex');row.append(btn('Queue plan',async()=>{
+    if(!confirm(`Queue a Terraform plan for ${p.name} (${p.workspace})?`))return;
+    try{await api(`/api/projects/${p.id}/plan`,'POST');await refresh()}catch(e){status(e.message,true)}
+  }));
+  row.append(btn(p.enabled?'Disable':'Enable',async()=>{
+    try{await api(`/api/projects/${p.id}`,'PATCH',{enabled:!p.enabled});await refresh()}catch(e){status(e.message,true)}
+  },'alt'));
+  const link=dom('a','Explore graph');link.href='/ui?workspace='+encodeURIComponent(p.workspace);link.target='_blank';link.rel='noopener';row.append(link);card.append(row);root.append(card);
+ }
+}
+function renderRuns(runs){const root=$('runs');root.replaceChildren();if(!runs.length){root.append(dom('p','No operations yet. Queue a plan to get started.'));return}
+ for(const run of runs){const p=projects.find(p=>p.id===run.project_id);const label=p?p.name:'Unknown project';
+ const card=dom('article',undefined,'run');const head=dom('div',undefined,'flex');head.append(dom('strong',label));head.append(dom('span',run.status.replaceAll('_',' '),'status '+run.status));head.append(dom('span',new Date(run.created_at).toLocaleString(),'small'));card.append(head);
+ card.append(dom('div',`Run ${run.id.slice(0,8)} · ${p?p.workspace:''}${run.approver?' · approved by '+run.approver:''}`,'small'));
+ if(run.plan_digest)card.append(dom('div','Plan SHA-256 '+run.plan_digest,'mono'));
+ if(run.error_message)card.append(dom('div',run.error_message,'small'));
+ if(run.output_text){const d=dom('details');d.append(dom('summary','Show Terraform output (may contain secrets)'));d.append(dom('pre',run.output_text));card.append(d)}
+ const controls=dom('div',undefined,'flex');
+ if(run.status==='plan_ready')controls.append(btn('Review and approve apply',async()=>{
+  const answer=prompt(`Review the plan output, then type the exact workspace name to APPROVE APPLY:\n${p?.workspace}`);
+  if(answer===null)return;
+  try{await api(`/api/runs/${run.id}/approve`,'POST',{digest:run.plan_digest,confirmation:answer});await refresh()}catch(e){status(e.message,true)}
+ },'warn'));
+ if(['queued','plan_ready','approved'].includes(run.status))controls.append(btn('Cancel',async()=>{
+  if(!confirm('Cancel this queued/approved run?'))return;
+  try{await api(`/api/runs/${run.id}/cancel`,'POST');await refresh()}catch(e){status(e.message,true)}
+ },'alt'));
+ if(run.status==='needs_reconciliation')controls.append(btn('Mark reconciled',async()=>{
+  const confirmation=prompt(`FIRST inspect Terraform state and cloud resources. Type workspace ${p?.workspace}:`);if(confirmation===null)return;
+  const notes=prompt('What did you verify and reconcile? (10+ characters)');if(notes===null)return;
+  try{await api(`/api/runs/${run.id}/resolve`,'POST',{confirmation,notes});await refresh()}catch(e){status(e.message,true)}
+ },'warn'));
+ if(controls.childNodes.length)card.append(controls);root.append(card);
+ }
+}
+$('connect').addEventListener('click',refresh);
+$('token').addEventListener('keydown',e=>{if(e.key==='Enter')refresh()});
+$('register').addEventListener('submit',async event=>{event.preventDefault();const data=Object.fromEntries(new FormData(event.currentTarget));
+ try{await api('/api/projects','POST',data);event.currentTarget.reset();await refresh();status('Project registered. Start the matching Windows runner to process its jobs.')}
+ catch(e){status(e.message,true)}
+});
+setInterval(()=>{if($('token').value.trim() && !document.querySelector('#runs details[open]'))refresh()},10000);
+</script></body></html>

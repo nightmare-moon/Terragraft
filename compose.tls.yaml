@@ -1,0 +1,20 @@
+# OPTIONAL. Requires DNS + publicly reachable ports 80/443 for ACME.
+# Example: docker compose -f compose.yaml -f compose.tls.yaml up -d --build
+services:
+  caddy:
+    image: caddy:2
+    environment:
+      TERRAGRAFT_DOMAIN: ${TERRAGRAFT_DOMAIN:?Configure a DNS hostname in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    restart: unless-stopped
+volumes:
+  caddy_data:
+  caddy_config:

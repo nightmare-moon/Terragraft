@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Terragraft Lab | State Explorer v1.0</title>
+  <style>
+    :root {font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:#142238;background:#f7f9fd}
+    * {box-sizing:border-box}
+    body {margin:0}
+    header {padding:26px 4vw 17px;background:white;border-bottom:1px solid #e3e9f4;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    h1 {font-size:25px;letter-spacing:-.6px;margin:3px 0 6px}
+    h2 {font-size:16px;margin:0 0 12px}
+    .eyebrow {text-transform:uppercase;font-size:12px;letter-spacing:1.8px;color:#2964d8;font-weight:800}
+    p {margin:0;color:#566479;line-height:1.55;font-size:14px}
+    main {padding:25px 4vw 48px;max-width:1640px;margin:auto}
+    .top {display:flex;gap:14px;flex-wrap:wrap;align-items:end;margin-bottom:20px}
+    label {font-size:12px;font-weight:700;color:#4f6075;display:grid;gap:6px}
+    input {border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;font:inherit;min-width:170px;background:white}
+    button {background:#2563eb;color:white;border:none;border-radius:8px;padding:11px 16px;font-weight:700;font-size:13px;cursor:pointer}
+    button:hover {background:#1d4ed8}
+    button:focus-visible, input:focus-visible {outline:3px solid #93c5fd;outline-offset:2px}
+    button:disabled {opacity:.55;cursor:not-allowed}
+    button.secondary {background:white;color:#1e40af;border:1px solid #a5b4d0}
+    button.secondary:hover {background:#edf4ff}
+    .counters {display:flex;gap:20px;margin-left:auto;flex-wrap:wrap}
+    .counter strong {font-size:20px;color:#18283d;display:block}
+    .counter small {color:#64748b}
+    .layout {display:grid;grid-template-columns:minmax(0, 2fr) minmax(290px, .85fr);gap:17px}
+    .panel {background:white;border:1px solid #e1e7f0;border-radius:12px;box-shadow:0 3px 18px #1b396b07;min-width:0;overflow:hidden}
+    .panelhead {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 22px;border-bottom:1px solid #edf0f5;flex-wrap:wrap}
+    .legend {display:flex;gap:16px;color:#5b677a;font-size:12px;flex-wrap:wrap;align-items:center}
+    .swatch {display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid #b9c7d8;vertical-align:-2px;margin-right:5px;background:#fff}
+    .swatch.locked {background:#2563eb;border-color:#2563eb}
+    .stage {padding:10px;overflow:auto;min-height:440px;background:linear-gradient(#fff,#fbfcff)}
+    svg {width:100%;min-width:540px;display:block}
+    .edge {fill:none;stroke:#becbdd;stroke-width:2}
+    .node {cursor:pointer}
+    .node rect {fill:white;stroke:#bdc9db;stroke-width:1.7}
+    .node.locked rect {fill:#2563eb;stroke:#2563eb}
+    .node.selected rect {stroke:#f59e0b;stroke-width:3}
+    .node text {font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#40536b;font-size:11px}
+    .node.locked text {fill:white}
+    .side {padding:22px;display:grid;gap:20px;align-content:start}
+    .info {background:#f3f7ff;border:1px solid #d8e6ff;border-radius:9px;padding:13px;font-size:13px;color:#31527c;line-height:1.5}
+    .datum {overflow-wrap:anywhere;margin-top:7px;font-size:13px}
+    .datum span {display:block;color:#7b889c;font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+    .actions {display:flex;gap:9px;flex-wrap:wrap}
+    .muted {color:#7f8da1}
+    #status {font-size:13px;line-height:1.45;min-height:32px}
+    footer {font-size:12px;color:#64748b;margin-top:16px}
+    .loglist {max-height:220px;overflow:auto;display:grid;gap:7px;font-size:12px}
+    .logitem {padding:9px 10px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:7px;overflow-wrap:anywhere}
+    input[type=password] {min-width:220px}
+    .wide {flex:1;max-width:390px}
+    .warning {color:#92400e;background:#fffbeb;border:1px solid #fde68a;padding:12px;border-radius:8px}
+    @media(max-width:850px) {.layout {grid-template-columns:1fr}.counters {margin-left:0}}
+  </style>
+</head>
+<body>
+<header><div><div class="eyebrow">Terragraft / experimental</div><h1>Infrastructure State Explorer</h1><p>Encrypted state · Audited history · Graph transaction lab</p></div><div class="eyebrow">Lab build 0.2</div> <a href="/console" style="color:#1d4ed8;font-weight:700">Project Console</a></header>
+<main>
+  <div class="top">
+    <label>Workspace <input id="workspace" value="demo" autocomplete="off"></label>
+    <label class="wide">API token (held in memory only) <input id="token" type="password" placeholder="Paste token from .env" autocomplete="off"></label>
+    <button id="reload">Load graph</button>
+    <div class="counters">
+      <div class="counter"><strong id="nNodes">0</strong><small>Resources</small></div>
+      <div class="counter"><strong id="nEdges">0</strong><small>Dependencies</small></div>
+      <div class="counter"><strong id="nLocks">0</strong><small>Active graph leases</small></div>
+    </div>
+  </div>
+  <div class="layout">
+    <section class="panel"><div class="panelhead"><h2>Resource dependency graph</h2><div class="legend"><span><i class="swatch locked"></i>Graph-leased</span><span><i class="swatch"></i>Available</span></div></div><div class="stage"><svg id="graph" viewBox="0 0 800 440" role="img" aria-label="Dependency graph"></svg><p id="empty" style="display:none;padding:38px;text-align:center">No resources yet. Run the example Terraform apply, then reload.</p></div></section>
+    <aside class="panel"><div class="side">
+      <div><h2>Selected resource</h2><div id="selection" class="muted">Select a resource in the graph.</div><div id="detail"></div></div>
+      <div class="warning"><b>Important:</b> Graph transactions coordinate encrypted <i>experimental metadata</i>, not cloud operations or Terraform's full raw state. An ordinary Terraform workspace still uses a whole-state lock.</div>
+      <div><h2>Graph transaction lab</h2>
+      <label>Operation label<input id="owner" value="engineer-a" autocomplete="off"></label>
+      <div class="actions" style="margin-top:13px"><button id="acquire" disabled>Plan + lease selected</button><button id="release" class="secondary" disabled>Abort my operation</button></div>
+      <label style="margin-top:12px">Commit metadata JSON<input id="value" value='{"example":true}'></label>
+      <button id="commit" disabled style="margin-top:8px">Commit graph metadata</button></div>
+      <div><h2>Recent state history</h2><div class="loglist" id="history"></div></div>
+      <div><h2>Recent operations</h2><div class="loglist" id="operations"></div></div>
+      <div id="status" role="status" aria-live="polite"></div>
+    </div></aside>
+  </div>
+  <footer>Authentication and encryption are enabled. Local HTTP is for loopback development only. Use a trusted HTTPS proxy, managed database, key custody, backups and security review before handling real state.</footer>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  let graph = {nodes:[], edges:[]}, leases = [], selected = '', activeOp = null, activeResource = ''; 
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(name, attrs = {}, value) {
+    const node = document.createElementNS(NS, name);
+    Object.entries(attrs).forEach(([key,val]) => node.setAttribute(key, String(val)));
+    if (value !== undefined) node.textContent = value;
+    return node;
+  }
+  const workspace = () => $('workspace').value.trim();
+  function setStatus(message, error=false) {
+    $('status').style.color = error ? '#b91c1c' : '#2463c2';
+    $('status').textContent = message;
+  }
+  function renderSelection() {
+    const node = graph.nodes.find(n=>n.address===selected);
+    $('acquire').disabled = !node;
+    $('release').disabled = !activeOp;
+    $('commit').disabled = !activeOp;
+    $('selection').textContent = node ? node.address : 'Select a resource in the graph.';
+    $('detail').replaceChildren();
+    if (!node) return;
+    const details = [
+      ['Type',node.type],
+      ['Depends on',graph.edges.filter(e=>e.from===selected).map(e=>e.depends_on).join(', ') || 'None'],
+      ['Used by',graph.edges.filter(e=>e.depends_on===selected).map(e=>e.from).join(', ') || 'None'],
+      ['Lease holder',leases.find(l=>l.address===selected)?.owner || 'Available']
+    ];
+    for (const [label,value] of details) {
+      const item=document.createElement('div');item.className='datum';
+      const caption=document.createElement('span');caption.textContent=label;
+      item.append(caption,document.createTextNode(value));$('detail').append(item);
+    }
+  }
+  function render() {
+    $('nNodes').textContent=graph.nodes.length;
+    $('nEdges').textContent=graph.edges.length;
+    $('nLocks').textContent=leases.length;
+    const svg=$('graph');svg.replaceChildren();
+    $('empty').style.display=graph.nodes.length?'none':'block';
+    if (!graph.nodes.length) {svg.style.display='none';renderSelection();return;}
+    svg.style.display='block';
+    const nodeMap=new Map(graph.nodes.map(n=>[n.address,n]));
+    const deps=new Map(graph.nodes.map(n=>[n.address,graph.edges.filter(e=>e.from===n.address && nodeMap.has(e.depends_on)).map(e=>e.depends_on)]));
+    const memo=new Map();
+    function level(name, visiting=new Set()) {
+      if(memo.has(name)) return memo.get(name);
+      if(visiting.has(name)) return 0;
+      visiting.add(name);
+      const d=deps.get(name)||[];
+      const depth=d.length?Math.min(16,1+Math.max(...d.map(x=>level(x,visiting)))):0;
+      visiting.delete(name);memo.set(name,depth);return depth;
+    }
+    const tiers=new Map();
+    graph.nodes.forEach(n=>{let l=level(n.address);if(!tiers.has(l))tiers.set(l,[]);tiers.get(l).push(n.address)});
+    const coords=new Map(), bx=205, by=52, horizontal=245, vertical=88, margin=30;
+    const width=Math.max(650,(Math.max(...tiers.keys())+1)*horizontal+margin*2);
+    const maxRows=Math.max(...[...tiers.values()].map(t=>t.length));
+    const height=Math.max(380,maxRows*vertical+margin*2);
+    for(const [rank,items] of tiers.entries()) {
+      items.sort(); const start=(height-items.length*vertical)/2+18;
+      items.forEach((name,i)=>coords.set(name,{x:margin+rank*horizontal,y:start+i*vertical}));
+    }
+    svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
+    svg.setAttribute('height',String(height));
+    for(const edge of graph.edges) {
+      const a=coords.get(edge.depends_on),b=coords.get(edge.from); if(!a||!b) continue;
+      const x1=a.x+bx,y1=a.y+by/2,x2=b.x,y2=b.y+by/2;
+      svg.append(el('path',{class:'edge',d:`M${x1},${y1} C${x1+32},${y1} ${x2-32},${y2} ${x2},${y2}`}));
+    }
+    for(const node of graph.nodes) {
+      const point=coords.get(node.address); const locked=leases.some(l=>l.address===node.address);
+      const group=el('g',{class:`node${locked?' locked':''}${selected===node.address?' selected':''}`,
+        transform:`translate(${point.x} ${point.y})`,role:'button',tabindex:0});
+      group.append(el('rect',{x:0,y:0,width:bx,height:by,rx:8}));
+      const name=node.address;
+      const short=name.length>26?name.slice(0,23)+'…':name;
+      group.append(el('text',{x:12,y:31},short));
+      group.append(el('title',{},name));
+      group.addEventListener('click',()=>{selected=name;render();});
+      group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selected=name;render();}});
+      svg.append(group);
+    }
+    renderSelection();
+  }
+  async function fetchJson(url, options={}) {
+    const token=$('token').value.trim();
+    if(!token) throw Error('Enter the API token from .env and click Load graph.');
+    const headers={...(options.headers||{}),Authorization:`Bearer ${token}`};
+    const resp=await fetch(url,{...options,headers,cache:'no-store'});
+    const txt=await resp.text();let data={};
+    try {data=txt?JSON.parse(txt):{};} catch { throw Error(`Unexpected HTTP ${resp.status}`); }
+    if(!resp.ok) throw Error(typeof data.detail==='string'?data.detail:JSON.stringify(data.detail||data));
+    return data;
+  }
+  function renderLog(id,entries,format) {
+    const panel=$(id);panel.replaceChildren();
+    if(!entries.length) { panel.textContent='No entries yet.';return; }
+    entries.slice(0,12).forEach(item=>{
+      const elem=document.createElement('div');elem.className='logitem';
+      elem.textContent=format(item);panel.append(elem);
+    });
+  }
+  async function load() {
+    if(!workspace()) return setStatus('Workspace is required.',true);
+    try {
+      const id=encodeURIComponent(workspace());
+      const [newGraph,history,operations]=await Promise.all([
+        fetchJson(`/api/graph/${id}`),fetchJson(`/api/history/${id}`),fetchJson(`/api/operations/${id}`)]);
+      graph=newGraph;leases=graph.leases||[];
+      renderLog('history',history.versions,v=>`#${v.id} · ${v.action} · serial ${v.serial ?? 'none'} · ${v.created_at}`);
+      renderLog('operations',operations.operations,o=>`${o.status} · ${o.label} · ${o.id.slice(0,8)} · ${o.write_set.join(', ')}`);
+      if(!graph.nodes.some(n=>n.address===selected)) selected='';
+      render();setStatus(`Loaded workspace ${workspace()}.`);
+    } catch(e) {setStatus(e.message,true);}
+  }
+  async function lease(action) {
+    try {
+      if(action==='acquire') {
+        if(!selected)return;
+        const data=await fetchJson('/api/operations/plan',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({workspace:workspace(),label:$('owner').value.trim()||'UI demo',write_set:[selected],read_set:[],ttl_seconds:300})});
+        activeOp=data.operation_id;activeResource=selected;
+        await load();setStatus(`Planned operation ${activeOp}; leased ${data.locked_resources.join(', ')}.`);
+      } else if(action==='release') {
+        if(!activeOp)return;
+        await fetchJson(`/api/operations/${activeOp}/abort`,{method:'POST'});
+        activeOp=null;activeResource='';await load();setStatus('Graph operation aborted and its leases released.');
+      } else if(action==='commit') {
+        if(!activeOp)return;
+        const value=JSON.parse($('value').value);
+        const data=await fetchJson(`/api/operations/${activeOp}/commit`,{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({changes:{[activeResource]:value}})});
+        activeOp=null;activeResource='';await load();setStatus(`Committed graph metadata version ${Object.values(data.resource_versions).join(', ')}. No cloud resources changed.`);
+      }
+    } catch(e) {setStatus(e.message,true);}
+  }
+  $('reload').addEventListener('click',load);
+  $('acquire').addEventListener('click',()=>lease('acquire'));
+  $('release').addEventListener('click',()=>lease('release'));
+  $('commit').addEventListener('click',()=>lease('commit'));
+  $('token').addEventListener('keydown',event=>{if(event.key==='Enter')load();});
+  $('workspace').value = new URLSearchParams(location.search).get('workspace') || 'demo';
+  setStatus('Enter your API token to load a workspace.');
+</script>
+</body>
+</html>

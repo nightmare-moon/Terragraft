@@ -1,0 +1,28 @@
+TERRAGRAFT v1.0 -- ONE-TIME WINDOWS INSTALL
+==========================================
+
+NOT an upgrade. Fresh PostgreSQL database and fresh credentials.
+No Terragraft files need to go inside your Terraform project folders.
+
+Requirements: Docker Desktop running, Python 3, and Terraform/OpenTofu CLI.
+
+1. Extract this ZIP to a permanent folder e.g. D:\Tools\Terragraft.
+2. Double-click INSTALL.cmd (or in PowerShell run INSTALL.ps1
+   -ProjectsRoot "D:\TerraformProjects").
+3. The installer starts Docker, a separate Windows runner and the dashboard.
+4. In a PowerShell window in the install folder, run:
+      .\COPY-ADMIN-TOKEN.ps1
+   Paste the copied token into http://127.0.0.1:8080/console and Connect.
+5. For each NEW Terraform project:
+      .\CONNECT-PROJECT.ps1 -Path "D:\TerraformProjects\Network" -Workspace "network-dev"
+   If you want a new DEMO project generated automatically:
+      .\CONNECT-PROJECT.ps1 -Path "D:\TerraformProjects\Demo" -Workspace "demo" -Create
+6. Click Queue plan in the dashboard, inspect output, approve apply.
+
+Already have old Terragraft running on 8080? Run RESET-OLD-LAB.ps1
+once to stop it (does NOT delete your old database).
+
+To restart on another day: RUN.cmd
+To stop the server: STOP.ps1
+
+Read README.md for full documentation, safety constraints and CLI usage.
